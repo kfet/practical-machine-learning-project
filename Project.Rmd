@@ -1,0 +1,62 @@
+Predicting the manner in which exercises are done
+========================================================
+
+Load the data
+
+```{r}
+tr <- read.csv("pml-training.csv")
+```
+
+Fix numerics imported as character values, dropping the first 7 columns
+, which don't represent sensor measurements, but things like time-stamps, user names
+, and various other metadata about each data sample.
+
+```{r}
+opts_chunk$set(comment = NA, message = FALSE, warnings = FALSE)
+tr.fix <- tr[,8:160]
+tr.fix[,1:152] <- sapply(tr.fix[,1:152], paste)
+tr.fix[,1:152] <- sapply(tr.fix[,1:152], as.numeric)
+```
+
+Drop columns with NAs.
+
+```{r}
+na.sums <- apply(tr.fix, 2, function(x) sum(is.na(x)))
+rows <- nrow(tr.fix)
+tr.fix.nona <- tr.fix[,na.sums == 0]
+```
+
+Fit a random forests model to the data.
+
+```{r}
+require(randomForest)
+set.seed(1975)
+fit <- randomForest(classe ~ ., data=tr.fix.nona, na.action=na.roughfix)
+```
+
+Let's take a look at the model.
+
+```{r}
+fit
+```
+
+The OOB estimate represents the expected out of sample error: **0.25%**  
+
+Now let's move to the test data and predict the manner the exercises were done.  
+
+Read and fix the data, leave NAs.
+
+```{r}
+opts_chunk$set(comment = NA, message = FALSE, warnings = FALSE)
+tst <- read.csv("pml-testing.csv")
+
+tst.fix <- tst[,8:159]
+tst.fix[,1:152] <- sapply(tst.fix[,1:152], paste)
+tst.fix[,1:152] <- sapply(tst.fix[,1:152], as.numeric)
+```
+
+And finally - predict the test sample classes:
+
+```{r}
+answers <- predict(fit, newdata=tst.fix); answers
+```
